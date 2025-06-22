@@ -12,6 +12,8 @@ import swaggerUi from 'swagger-ui-express';
 import YAML from 'yamljs';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
 import voterRoutes from './routes/voterRoutes.js';
 import candidateRoutes from './routes/candidateRoutes.js';
@@ -24,6 +26,7 @@ import voterRegistrationRoutes from './routes/voterRegistrationRoutes.js';
 
 const app: Express = express();
 const PORT: string | number = process.env.PORT || 3000;
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 console.log('--- Debugging express-session import ---');
 console.log('Type of session:', typeof session);
@@ -94,6 +97,9 @@ app.use(cookieParser());
 
 // Swagger UI route
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
+
+// Serve static files from the 'uploads' directory
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // API Routes
 app.use('/api/auth', authRoutes);

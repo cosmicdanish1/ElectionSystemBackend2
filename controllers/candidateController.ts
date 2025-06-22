@@ -3,9 +3,13 @@
 // It interacts with the candidate model to perform CRUD operations (Create, Read, Update, Delete) on candidate data,
 // and sends appropriate responses back to the client.
 import { Request, Response, NextFunction } from 'express';
-import { getAll as getAllCandidates, getById as getCandidateById, create as createCandidate, update as updateCandidate, remove as removeCandidate } from '../models/candidateModel.js';
+import { getAll as getAllCandidates, getById as getCandidateById, create as createCandidate, update as updateCandidate, remove as removeCandidate, getByElection as getCandidatesByElectionModel } from '../models/candidateModel.js';
 import pool from '../config/database.js';
-import { RowDataPacket } from 'mysql2';
+import { RowDataPacket, ResultSetHeader } from 'mysql2';
+
+interface Party extends RowDataPacket {
+    partyid: number;
+}
 
 interface Election extends RowDataPacket {
     electionid: number;
@@ -32,18 +36,41 @@ export const getById = async (req: Request, res: Response, next: NextFunction) =
 
 export const create = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        // Expect ElectionType from UI, map to ElectionId
-        const { ElectionType, ...payload } = req.body;
-        if (!ElectionType) return res.status(400).json({ message: 'ElectionType required' });
+        const { ElectionType, electionid, partyname, ...payload } = req.body;
 
-        // find election id
-        const [rows] = await pool.query<Election[]>('SELECT electionid FROM elections WHERE type = ? ORDER BY date DESC LIMIT 1', [ElectionType]);
-        if (rows.length === 0) return res.status(400).json({ message: `No election of type ${ElectionType}` });
+        // Add the file path to the payload if a file was uploaded
+        if (req.file) {
+            // Construct a URL path instead of a file system path
+            payload.profile_photo_url = `/uploads/${req.file.filename}`;
+        }
 
-        payload.electionid = rows[0].electionid;
+        // Step 1: Determine the electionid
+        if (electionid) {
+            payload.electionid = electionid;
+        } else if (ElectionType) {
+            const [rows] = await pool.query<Election[]>('SELECT electionid FROM elections WHERE type = ? ORDER BY date DESC LIMIT 1', [ElectionType]);
+            if (rows.length === 0) return res.status(400).json({ message: `No active election found for type ${ElectionType}` });
+            payload.electionid = rows[0].electionid;
+        } else {
+            return res.status(400).json({ message: 'Election ID or a valid Election Type is required' });
+        }
+
+        // Step 2: Handle partyname (find or create party)
+        if (partyname && partyname.trim() !== '') {
+            const [parties] = await pool.query<Party[]>('SELECT partyid FROM parties WHERE name = ?', [partyname.trim()]);
+            if (parties.length > 0) {
+                payload.partyid = parties[0].partyid;
+            } else {
+                const [newParty] = await pool.query<ResultSetHeader>('INSERT INTO parties (name) VALUES (?)', [partyname.trim()]);
+                payload.partyid = newParty.insertId;
+            }
+        } else {
+            payload.partyid = null; // Independent candidate
+        }
 
         const [result] = await createCandidate(payload);
-        res.status(201).json({ cid: (result as any).insertId, ...payload, ElectionType });
+        // @ts-ignore
+        res.status(201).json({ cid: result.insertId, ...payload });
     } catch (err) {
         next(err);
     }
@@ -62,6 +89,15 @@ export const remove = async (req: Request, res: Response, next: NextFunction) =>
     try {
         await removeCandidate(Number(req.params.id));
         res.json({ message: 'Candidate deleted' });
+    } catch (err) {
+        next(err);
+    }
+};
+
+export const getCandidatesByElection = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const [rows] = await getCandidatesByElectionModel(Number(req.params.electionid));
+        res.json(rows);
     } catch (err) {
         next(err);
     }

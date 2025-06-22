@@ -13,6 +13,8 @@ interface User extends RowDataPacket {
     email: string;
     role: string;
     password?: string;
+    gender: string;
+    date_of_birth: string;
 }
 
 // Login route
@@ -60,7 +62,9 @@ router.post('/login', async (req: Request, res: Response) => {
         const sessionUser = {
             userid: user.userid,
             email: user.email,
-            role: user.role
+            role: user.role,
+            gender: user.gender,
+            date_of_birth: user.date_of_birth
         };
 
         console.log('🔐 Setting session user object:', sessionUser);
@@ -89,7 +93,9 @@ router.post('/login', async (req: Request, res: Response) => {
                     id: user.userid,
                     name: user.name,
                     email: user.email,
-                    role: user.role
+                    role: user.role,
+                    gender: user.gender,
+                    date_of_birth: user.date_of_birth
                 }
             });
             console.log('🔐 === LOGIN END ===');

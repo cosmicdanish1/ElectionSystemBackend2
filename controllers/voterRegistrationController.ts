@@ -8,10 +8,10 @@ export const registerVoter = async (req: Request, res: Response) => {
     try {
         console.log('🔔 registerVoter route hit');
         console.log('Received body:', req.body);
-        const { userid, aadharid, address, nationality, voter_card_id } = req.body;
+        const { userid, aadharid, address, nationality, voter_card_id, state } = req.body;
 
         // Validate required fields
-        if (!userid || !aadharid || !address || !nationality || !voter_card_id) {
+        if (!userid || !aadharid || !address || !nationality || !voter_card_id || !state) {
             console.log('❌ Missing required fields');
             return res.status(400).json({ error: 'All fields are required.' });
         }
@@ -22,9 +22,9 @@ export const registerVoter = async (req: Request, res: Response) => {
 
         // Insert into voters
         await db.query(
-            `INSERT INTO voters (userid, aadharid, address, nationality, voter_card_id, is_verified)
-       VALUES (?, ?, ?, ?, ?, TRUE)`,
-            [userid, aadharid, address, nationality, voter_card_id]
+            `INSERT INTO voters (userid, aadharid, address, state, nationality, voter_card_id, is_verified)
+       VALUES (?, ?, ?, ?, ?, ?, TRUE)`,
+            [userid, aadharid, address, state, nationality, voter_card_id]
         );
         console.log('✅ Registration inserted successfully');
         res.status(201).json({ message: 'Registration successful!' });

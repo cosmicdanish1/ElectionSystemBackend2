@@ -2,12 +2,13 @@
 // This file sets up the API endpoints for CRUD operations on elections,
 // as well as routes for checking vote status and submitting votes.
 import express, { Request, Response } from 'express';
-import { getAll, getById, create, update, remove } from '../controllers/electionController.js';
+import { getAll, getById, create, update, remove, getRelevantElections } from '../controllers/electionController.js';
 import pool from '../config/database.js';
 
 const router = express.Router();
 
 router.get('/', getAll);
+router.get('/relevant/:userid', getRelevantElections);
 router.get('/:id', getById);
 router.post('/', create);
 router.put('/:id', update);

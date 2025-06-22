@@ -3,7 +3,7 @@
 // It interacts with the voter model to perform CRUD operations (Create, Read, Update, Delete) on voter data,
 // and sends appropriate responses back to the client.
 import { Request, Response, NextFunction } from 'express';
-import { getAll as getAllVoters, getById as getVoterById, create as createVoter, update as updateVoter, remove as removeVoter } from '../models/voterModel.js';
+import { getAll as getAllVoters, getById as getVoterById, create as createVoter, update as updateVoter, remove as removeVoter, getByUserId } from '../models/voterModel.js';
 
 export const getAll = async (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -48,5 +48,16 @@ export const remove = async (req: Request, res: Response, next: NextFunction) =>
         res.json({ message: 'Voter deleted' });
     } catch (err) {
         next(err);
+    }
+};
+
+export const getVoterByUserId = async (req: Request, res: Response) => {
+    const { userid } = req.params;
+    try {
+        const [rows] = await getByUserId(Number(userid));
+        if ((rows as any).length === 0) return res.status(404).json({ error: 'Not registered' });
+        res.json((rows as any)[0]);
+    } catch (err) {
+        res.status(500).json({ error: 'Server error', details: (err as Error).message });
     }
 }; 
