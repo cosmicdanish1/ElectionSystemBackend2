@@ -1,0 +1,747 @@
+openapi: 3.0.0
+info:
+  title: Election Management API
+  version: 2.0.0
+  description: API for managing users, voters, candidates, elections, and votes in an election management system.
+
+servers:
+  - url: http://localhost:3000/api
+
+paths:
+  /auth/register:
+    post:
+      summary: Register a new user
+      description: Add a new user to the system (voter or admin).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserRegistrationInput'
+      responses:
+        '201':
+          description: User registered successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          description: User already exists or invalid input
+        '500':
+          description: Internal server error
+
+  /auth/login:
+    post:
+      summary: Log in a user
+      description: Authenticate a user and create a session.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                role:
+                  type: string
+                  enum: [voter, admin]
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '401':
+          description: Invalid credentials
+        '500':
+          description: Internal server error
+
+  /auth/logout:
+    post:
+      summary: Log out a user
+      description: Destroy the user's session.
+      responses:
+        '200':
+          description: Logged out successfully
+        '500':
+          description: Could not log out
+
+  /auth/me:
+    get:
+      summary: Get current user
+      description: Check if a user is authenticated and retrieve their data.
+      responses:
+        '200':
+          description: User is authenticated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user:
+                    $ref: '#/components/schemas/User'
+                  authenticated:
+                    type: boolean
+        '401':
+          description: Not authenticated
+
+  /users:
+    get:
+      summary: Get all users
+      description: Retrieve a list of all users.
+      responses:
+        '200':
+          description: A list of users.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/User'
+        '500':
+          description: Internal server error
+
+  /users/profile:
+    get:
+      summary: Get current user's profile
+      description: Fetches the profile of the currently logged-in user.
+      responses:
+        '200':
+          description: User profile data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '401':
+          description: Not authenticated
+        '404':
+          description: User not found
+        '500':
+          description: Internal server error
+
+  /users/{id}:
+    parameters:
+      - name: id
+        in: path
+        description: ID of the user
+        required: true
+        schema:
+          type: integer
+    get:
+      summary: Get a user by ID
+      description: Retrieve a single user by their ID.
+      responses:
+        '200':
+          description: User found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '404':
+          description: User not found
+    put:
+      summary: Update a user
+      description: Update details of an existing user.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserInput'
+      responses:
+        '200':
+          description: User updated successfully
+    delete:
+      summary: Delete a user
+      description: Remove a user from the system.
+      responses:
+        '200':
+          description: User deleted successfully
+
+  /voters:
+    get:
+      summary: Get all voters
+      description: Retrieve a list of all voters.
+      responses:
+        '200':
+          description: A list of voters.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/VoterProfile'
+        '500':
+          description: Internal server error
+    post:
+      summary: Create a new voter profile
+      description: Add a new voter profile to the system.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VoterProfileInput'
+      responses:
+        '201':
+          description: Voter profile created
+        '500':
+          description: Internal server error
+
+  /voters/{id}:
+    parameters:
+      - name: id
+        in: path
+        description: ID of the voter
+        required: true
+        schema:
+          type: integer
+    get:
+      summary: Get a voter by ID
+      description: Retrieve a single voter by their ID.
+      responses:
+        '200':
+          description: Voter found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VoterProfile'
+        '404':
+          description: Voter not found
+    put:
+      summary: Update a voter
+      description: Update details of an existing voter.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VoterProfileInput'
+      responses:
+        '200':
+          description: Voter updated successfully
+    delete:
+      summary: Delete a voter
+      description: Remove a voter from the system.
+      responses:
+        '200':
+          description: Voter deleted successfully
+
+  /voter-registration:
+    post:
+      summary: Register a user as a voter for an election
+      description: Links a user to a voter profile for a specific election.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                userId:
+                  type: integer
+                electionId:
+                  type: integer
+      responses:
+        '201':
+          description: Voter registered for election
+        '400':
+          description: Bad request (e.g., already registered)
+        '500':
+          description: Internal server error
+
+  /candidates:
+    get:
+      summary: Get all candidates
+      description: Retrieve a list of all candidates with vote counts.
+      responses:
+        '200':
+          description: A list of candidates.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Candidate'
+        '500':
+          description: Internal server error
+    post:
+      summary: Create a new candidate
+      description: Add a new candidate to the system.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CandidateInput'
+      responses:
+        '201':
+          description: Candidate created successfully
+
+  /candidates/{id}:
+    parameters:
+      - name: id
+        in: path
+        description: ID of the candidate
+        required: true
+        schema:
+          type: integer
+    get:
+      summary: Get a candidate by ID
+      description: Retrieve a single candidate by their ID.
+      responses:
+        '200':
+          description: Candidate found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Candidate'
+        '404':
+          description: Candidate not found
+    put:
+      summary: Update a candidate
+      description: Update details of an existing candidate.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CandidateInput'
+      responses:
+        '200':
+          description: Candidate updated successfully
+    delete:
+      summary: Delete a candidate
+      description: Remove a candidate from the system.
+      responses:
+        '200':
+          description: Candidate deleted successfully
+
+  /elections:
+    get:
+      summary: Get all elections
+      description: Retrieve a list of all ongoing and upcoming elections with their candidates.
+      responses:
+        '200':
+          description: A list of elections.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Election'
+        '500':
+          description: Internal server error
+    post:
+      summary: Create a new election
+      description: Add a new election to the system.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ElectionInput'
+      responses:
+        '201':
+          description: Election created successfully
+
+  /elections/{id}:
+    parameters:
+      - name: id
+        in: path
+        description: ID of the election
+        required: true
+        schema:
+          type: integer
+    get:
+      summary: Get an election by ID
+      description: Retrieve a single election by its ID.
+      responses:
+        '200':
+          description: Election found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Election'
+        '404':
+          description: Election not found
+    put:
+      summary: Update an election
+      description: Update details of an existing election.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ElectionInput'
+      responses:
+        '200':
+          description: Election updated successfully
+    delete:
+      summary: Delete an election
+      description: Remove an election from the system.
+      responses:
+        '200':
+          description: Election deleted successfully
+
+  /elections/{electionId}/vote-status/{userId}:
+    get:
+      summary: Check if a user has voted in an election
+      parameters:
+        - name: electionId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Voting status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  hasVoted:
+                    type: boolean
+        '500':
+          description: Internal server error
+
+  /elections/{electionId}/vote:
+    post:
+      summary: Submit a vote
+      parameters:
+        - name: electionId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                candidateId:
+                  type: integer
+                voterId:
+                  type: integer
+      responses:
+        '200':
+          description: Vote recorded successfully
+        '400':
+          description: Already voted
+        '500':
+          description: Internal server error
+
+  /votes:
+    get:
+      summary: Get all votes
+      description: Retrieve a list of all votes.
+      responses:
+        '200':
+          description: A list of votes.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Vote'
+        '500':
+          description: Internal server error
+    post:
+      summary: Cast a new vote
+      description: Add a new vote to the system.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VoteInput'
+      responses:
+        '201':
+          description: Vote created successfully
+
+  /votes/{id}:
+    parameters:
+      - name: id
+        in: path
+        description: ID of the vote
+        required: true
+        schema:
+          type: integer
+    get:
+      summary: Get a vote by ID
+      description: Retrieve a single vote by its ID.
+      responses:
+        '200':
+          description: Vote found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Vote'
+        '404':
+          description: Vote not found
+    put:
+      summary: Update a vote
+      description: Update details of an existing vote.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VoteInput'
+      responses:
+        '200':
+          description: Vote updated successfully
+    delete:
+      summary: Delete a vote
+      description: Remove a vote from the system.
+      responses:
+        '200':
+          description: Vote deleted successfully
+          
+  /test:
+    get:
+      summary: Test endpoint
+      description: A simple endpoint to verify that the backend is running.
+      responses:
+        '200':
+          description: Success message
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  message:
+                    type: string
+                  timestamp:
+                    type: string
+                    format: date-time
+                    
+  /test/connection:
+    get:
+      summary: Test connection endpoint
+      description: A simple endpoint to verify that the backend is connected.
+      responses:
+        '200':
+          description: Success message
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  message:
+                    type: string
+                  timestamp:
+                    type: string
+                    format: date-time
+
+components:
+  schemas:
+    User:
+      type: object
+      properties:
+        userid:
+          type: integer
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+        role:
+          type: string
+          enum: [voter, admin]
+        gender:
+          type: string
+        date_of_birth:
+          type: string
+          format: date
+
+    UserInput:
+      type: object
+      properties:
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+        role:
+          type: string
+          enum: [voter, admin]
+        gender:
+          type: string
+        date_of_birth:
+          type: string
+          format: date
+
+    UserRegistrationInput:
+      type: object
+      properties:
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+        role:
+          type: string
+          enum: [voter, admin]
+        gender:
+          type: string
+        date_of_birth:
+          type: string
+          format: date
+
+    VoterProfile:
+      type: object
+      properties:
+        voterid:
+          type: integer
+        userid:
+          type: integer
+        id_card_number:
+          type: string
+        address:
+          type: string
+        registration_date:
+          type: string
+          format: date-time
+    
+    VoterProfileInput:
+      type: object
+      properties:
+        userid:
+          type: integer
+        id_card_number:
+          type: string
+        address:
+          type: string
+        
+    Candidate:
+      type: object
+      properties:
+        candidateid:
+          type: integer
+        name:
+          type: string
+        gender:
+          type: string
+        partyname:
+          type: string
+        symbol:
+          type: string
+        electionid:
+          type: integer
+        electiontype:
+          type: string
+        electiondate:
+          type: string
+          format: date
+        locationregion:
+          type: string
+        votecount:
+          type: integer
+
+    CandidateInput:
+      type: object
+      properties:
+        name:
+          type: string
+        gender:
+          type: string
+        partyid:
+          type: integer
+        symbol_url:
+          type: string
+        electionid:
+          type: integer
+
+    Election:
+      type: object
+      properties:
+        electionid:
+          type: integer
+        name:
+          type: string
+        type:
+          type: string
+        date:
+          type: string
+          format: date
+        location_region:
+          type: string
+        status:
+          type: string
+          enum: [Upcoming, Ongoing, Completed, Canceled]
+        candidates:
+          type: array
+          items:
+            type: object
+            properties:
+              candidateid:
+                type: integer
+              name:
+                type: string
+              partyname:
+                type: string
+              symbol:
+                type: string
+
+    ElectionInput:
+      type: object
+      properties:
+        name:
+          type: string
+        type:
+          type: string
+        date:
+          type: string
+          format: date
+        location_region:
+          type: string
+        status:
+          type: string
+          enum: [Upcoming, Ongoing, Completed, Canceled]
+
+    Vote:
+      type: object
+      properties:
+        voteid:
+          type: integer
+        voterid:
+          type: integer
+        candidateid:
+          type: integer
+        electionid:
+          type: integer
+        timestamp:
+          type: string
+          format: date-time
+
+    VoteInput:
+      type: object
+      properties:
+        voterid:
+          type: integer
+        candidateid:
+          type: integer
+        electionid:
+          type: integer

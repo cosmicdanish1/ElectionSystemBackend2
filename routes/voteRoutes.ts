@@ -1,0 +1,14 @@
+// Purpose: Defines routes for managing votes.
+// This file sets up the API endpoints for creating, retrieving, updating, and deleting votes.
+import express from 'express';
+import { getAll, getById, create, update, remove } from '../controllers/voteController.js';
+
+const router = express.Router();
+
+router.get('/', getAll);
+router.get('/:id', getById);
+router.post('/', create);
+router.put('/:id', update);
+router.delete('/:id', remove);
+
+export default router; 

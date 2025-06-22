@@ -1,0 +1,17 @@
+# Node.js
+node_modules/
+npm-debug.log
+.env
+
+# Logs
+logs/
+*.log
+
+# Database credentials / sensitive files (if not in .env)
+*.sql.dump
+
+# IDEs and OS files
+.vscode/
+.idea/
+.DS_Store
+thumbs.db 
