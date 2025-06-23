@@ -4,6 +4,7 @@
 // and sends appropriate responses back to the client.
 import { Request, Response, NextFunction } from 'express';
 import { getAll as getAllVotes, getById as getVoteById, create as createVote, update as updateVote, remove as removeVote } from '../models/voteModel.js';
+import pool from '../config/database.js';
 
 export const getAll = async (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -50,6 +51,25 @@ export const remove = async (req: Request, res: Response, next: NextFunction) =>
     try {
         await removeVote(Number(req.params.id));
         res.json({ message: 'Vote deleted' });
+    } catch (err) {
+        next(err);
+    }
+};
+
+// Leaderboard: Get candidates with vote counts for a given election
+export const getLeaderboard = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const electionId = req.params.electionid;
+        const [rows] = await pool.query(
+            `SELECT c.cid, c.name, c.partyname, COUNT(v.voteid) as votes
+             FROM candidates c
+             LEFT JOIN votes v ON c.cid = v.candidateid
+             WHERE c.electionid = ?
+             GROUP BY c.cid, c.name, c.partyname
+             ORDER BY votes DESC`,
+            [electionId]
+        );
+        res.json(rows);
     } catch (err) {
         next(err);
     }

@@ -17,6 +17,28 @@ interface Election extends RowDataPacket {
 
 export const getAll = async (req: Request, res: Response, next: NextFunction) => {
     try {
+        const { electionid } = req.query;
+        if (electionid) {
+            // Custom query to join with elections and parties and filter by electionid
+            const [rows] = await pool.query(`
+                SELECT 
+                    c.cid,
+                    c.name,
+                    c.gender,
+                    c.dob,
+                    c.aadharid,
+                    c.partyid,
+                    p.name AS partyname,
+                    e.location_region AS place,
+                    c.status,
+                    c.is_verified
+                FROM candidates c
+                LEFT JOIN parties p ON c.partyid = p.partyid
+                JOIN elections e ON c.electionid = e.electionid
+                WHERE c.electionid = ?
+            `, [electionid]);
+            return res.json(rows);
+        }
         const [rows] = await getAllCandidates();
         res.json(rows);
     } catch (err) {
@@ -38,6 +60,9 @@ export const create = async (req: Request, res: Response, next: NextFunction) =>
     try {
         const { ElectionType, electionid, partyname, ...payload } = req.body;
 
+        // Debug log
+        console.log('Received candidate data:', req.body, 'ElectionID:', electionid);
+
         // Add the file path to the payload if a file was uploaded
         if (req.file) {
             // Construct a URL path instead of a file system path
@@ -46,13 +71,13 @@ export const create = async (req: Request, res: Response, next: NextFunction) =>
 
         // Step 1: Determine the electionid
         if (electionid) {
-            payload.electionid = electionid;
+            payload.electionid = Number(electionid);
         } else if (ElectionType) {
             const [rows] = await pool.query<Election[]>('SELECT electionid FROM elections WHERE type = ? ORDER BY date DESC LIMIT 1', [ElectionType]);
             if (rows.length === 0) return res.status(400).json({ message: `No active election found for type ${ElectionType}` });
             payload.electionid = rows[0].electionid;
         } else {
-            return res.status(400).json({ message: 'Election ID or a valid Election Type is required' });
+            return res.status(400).json({ message: 'Election ID is required' });
         }
 
         // Step 2: Handle partyname (find or create party)
